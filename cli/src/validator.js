@@ -223,6 +223,15 @@ function validateStatement(stmt, errors, path) {
         errors.push(new MissingRequiredFieldError('if must have a then block', { path }));
       }
       if (stmt.then) validateLogicBlock(stmt.then, errors, `${path}.then`);
+      if (stmt.elseif && stmt.elseif.length > 0) {
+        for (let i = 0; i < stmt.elseif.length; i++) {
+          const branch = stmt.elseif[i];
+          if (!branch.condition) {
+            errors.push(new MissingRequiredFieldError('elseif branch must have a condition', { path: `${path}.elseif[${i}]` }));
+          }
+          if (branch.then) validateLogicBlock(branch.then, errors, `${path}.elseif[${i}].then`);
+        }
+      }
       if (stmt.else && stmt.else.length > 0) validateLogicBlock(stmt.else, errors, `${path}.else`);
       break;
 
@@ -237,6 +246,42 @@ function validateStatement(stmt, errors, path) {
         errors.push(new MissingRequiredFieldError('forEach must have a do block', { path }));
       }
       if (stmt.do) validateLogicBlock(stmt.do, errors, `${path}.do`);
+      break;
+
+    case 'while':
+      if (stmt.condition === undefined || stmt.condition === null) {
+        errors.push(new MissingRequiredFieldError('while must have a condition', { path }));
+      }
+      if (!stmt.do || stmt.do.length === 0) {
+        errors.push(new MissingRequiredFieldError('while must have a do block', { path }));
+      }
+      if (stmt.do) validateLogicBlock(stmt.do, errors, `${path}.do`);
+      break;
+
+    case 'for':
+      if (!stmt.var) {
+        errors.push(new MissingRequiredFieldError('for must have a var', { path }));
+      }
+      if (stmt.to === undefined || stmt.to === null) {
+        errors.push(new MissingRequiredFieldError('for must have a "to" bound', { path }));
+      }
+      if (!stmt.do || stmt.do.length === 0) {
+        errors.push(new MissingRequiredFieldError('for must have a do block', { path }));
+      }
+      if (stmt.do) validateLogicBlock(stmt.do, errors, `${path}.do`);
+      break;
+
+    case 'comment':
+      // Always valid
+      break;
+
+    case 'destructure':
+      if (!stmt.from) {
+        errors.push(new MissingRequiredFieldError('destructure must have a "from" source', { path }));
+      }
+      if (!stmt.pick && !stmt.items) {
+        errors.push(new MissingRequiredFieldError('destructure must have "pick" or "items"', { path }));
+      }
       break;
 
     case 'return':

@@ -17,7 +17,8 @@ const TOP_LEVEL_KINDS = ['function', 'module', 'class', 'macro'];
 
 /** Recognized statement kinds */
 const STATEMENT_KINDS = [
-  'set', 'if', 'forEach', 'return', 'call', 'try', 'raise', 'match', 'parallel'
+  'set', 'if', 'forEach', 'while', 'for', 'return', 'call', 'try',
+  'raise', 'match', 'parallel', 'comment', 'destructure'
 ];
 
 /**
@@ -231,6 +232,10 @@ function parseStatement(node) {
       return parseIf(value);
     case 'forEach':
       return parseForEach(value);
+    case 'while':
+      return parseWhile(value);
+    case 'for':
+      return parseFor(value);
     case 'return':
       return { type: 'return', value };
     case 'call':
@@ -243,6 +248,10 @@ function parseStatement(node) {
       return parseMatch(value);
     case 'parallel':
       return parseParallel(value);
+    case 'comment':
+      return { type: 'comment', text: value };
+    case 'destructure':
+      return parseDestructure(value);
     default:
       return { type: 'unknown', kind, value };
   }
@@ -250,13 +259,17 @@ function parseStatement(node) {
 
 function parseSet(value) {
   if (typeof value !== 'object' || value === null) {
-    return { type: 'set', assignments: [] };
+    return { type: 'set', assignments: [], const: false };
   }
-  const assignments = Object.entries(value).map(([name, expr]) => ({
-    name,
-    value: expr
-  }));
-  return { type: 'set', assignments };
+  // Check for const flag — it's a sibling key, not a variable name
+  const isConst = value.const === true;
+  const assignments = Object.entries(value)
+    .filter(([name]) => name !== 'const')
+    .map(([name, expr]) => ({
+      name,
+      value: expr
+    }));
+  return { type: 'set', assignments, const: isConst };
 }
 
 function parseIf(value) {
@@ -264,6 +277,10 @@ function parseIf(value) {
     type: 'if',
     condition: value.condition,
     then: parseLogicBlock(value.then || []),
+    elseif: (value.elseif || []).map(branch => ({
+      condition: branch.condition,
+      then: parseLogicBlock(branch.then || [])
+    })),
     else: parseLogicBlock(value.else || [])
   };
 }
@@ -326,5 +343,34 @@ function parseParallel(value) {
   return {
     type: 'parallel',
     branches: (value.branches || []).map(branch => parseLogicBlock(branch))
+  };
+}
+
+function parseWhile(value) {
+  return {
+    type: 'while',
+    condition: value.condition,
+    do: parseLogicBlock(value.do || [])
+  };
+}
+
+function parseFor(value) {
+  return {
+    type: 'for',
+    var: value.var,
+    from: value.from !== undefined ? value.from : 0,
+    to: value.to,
+    step: value.step || 1,
+    do: parseLogicBlock(value.do || [])
+  };
+}
+
+function parseDestructure(value) {
+  return {
+    type: 'destructure',
+    from: value.from,
+    pick: value.pick || null,     // object destructuring { a, b }
+    items: value.items || null,   // array destructuring [a, b]
+    const: value.const !== false  // defaults to const
   };
 }

@@ -214,6 +214,14 @@ function generateStatement(stmt, depth, scope) {
       return generateMatch(stmt, depth, scope);
     case 'parallel':
       return generateParallel(stmt, depth, scope);
+    case 'while':
+      return generateWhile(stmt, depth, scope);
+    case 'for':
+      return generateFor(stmt, depth, scope);
+    case 'comment':
+      return `${ind}// ${stmt.text}`;
+    case 'destructure':
+      return generateDestructure(stmt, depth, scope);
     case 'expression':
       return `${ind}${resolveExpression(stmt.value, scope)};`;
     default:
@@ -227,6 +235,7 @@ function generateStatement(stmt, depth, scope) {
 function generateSet(stmt, depth, scope) {
   const ind = INDENT.repeat(depth);
   const lines = [];
+  const forceConst = stmt.const === true;
 
   for (const { name, value } of stmt.assignments) {
     const resolved = resolveExpression(value, scope);
@@ -245,7 +254,8 @@ function generateSet(stmt, depth, scope) {
     } else {
       const isNew = scope.declare(name);
       if (isNew) {
-        lines.push(`${ind}let ${name} = ${resolved};`);
+        const keyword = forceConst ? 'const' : 'let';
+        lines.push(`${ind}${keyword} ${name} = ${resolved};`);
       } else {
         const target = scope.resolve(name);
         lines.push(`${ind}${target} = ${resolved};`);
@@ -266,6 +276,16 @@ function generateIf(stmt, depth, scope) {
   let code = `${ind}if (${cond}) {\n`;
   code += generateLogicBlock(stmt.then, depth + 1, scope);
   code += `${ind}}`;
+
+  // elseif chains
+  if (stmt.elseif && stmt.elseif.length > 0) {
+    for (const branch of stmt.elseif) {
+      const branchCond = resolveExpression(branch.condition, scope);
+      code += ` else if (${branchCond}) {\n`;
+      code += generateLogicBlock(branch.then, depth + 1, scope);
+      code += `${ind}}`;
+    }
+  }
 
   if (stmt.else && stmt.else.length > 0) {
     code += ` else {\n`;
@@ -482,6 +502,78 @@ function generateParallel(stmt, depth, scope) {
   });
 
   return `${ind}await Promise.all([\n${branches.join(',\n')}\n${ind}].map(fn => fn()));`;
+}
+
+/**
+ * Generate while loop.
+ */
+function generateWhile(stmt, depth, scope) {
+  const ind = INDENT.repeat(depth);
+  const childScope = scope.child('block');
+  const cond = resolveExpression(stmt.condition, scope);
+
+  let code = `${ind}while (${cond}) {\n`;
+  code += generateLogicBlock(stmt.do, depth + 1, childScope);
+  code += `${ind}}`;
+  return code;
+}
+
+/**
+ * Generate counted for loop.
+ */
+function generateFor(stmt, depth, scope) {
+  const ind = INDENT.repeat(depth);
+  const childScope = scope.child('block');
+  childScope.declare(stmt.var);
+
+  const varName = stmt.var;
+  const from = resolveExpression(stmt.from, scope);
+  const to = resolveExpression(stmt.to, scope);
+  const step = stmt.step;
+
+  let stepExpr;
+  if (step === 1) {
+    stepExpr = `${varName}++`;
+  } else if (step === -1) {
+    stepExpr = `${varName}--`;
+  } else {
+    stepExpr = `${varName} += ${step}`;
+  }
+
+  const comparator = step > 0 ? '<' : '>';
+  let code = `${ind}for (let ${varName} = ${from}; ${varName} ${comparator} ${to}; ${stepExpr}) {\n`;
+  code += generateLogicBlock(stmt.do, depth + 1, childScope);
+  code += `${ind}}`;
+  return code;
+}
+
+/**
+ * Generate destructuring assignment.
+ */
+function generateDestructure(stmt, depth, scope) {
+  const ind = INDENT.repeat(depth);
+  const keyword = stmt.const ? 'const' : 'let';
+  const from = resolveExpression(stmt.from, scope);
+
+  if (stmt.pick) {
+    // Object destructuring
+    for (const name of stmt.pick) {
+      scope.declare(name);
+    }
+    const names = stmt.pick.join(', ');
+    return `${ind}${keyword} { ${names} } = ${from};`;
+  }
+
+  if (stmt.items) {
+    // Array destructuring
+    for (const name of stmt.items) {
+      if (name !== '_') scope.declare(name); // _ = skip position
+    }
+    const names = stmt.items.map(n => n === '_' ? '' : n).join(', ');
+    return `${ind}${keyword} [${names}] = ${from};`;
+  }
+
+  return `${ind}// Empty destructure`;
 }
 
 /**
