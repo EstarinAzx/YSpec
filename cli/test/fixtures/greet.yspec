@@ -1,0 +1,13 @@
+function: greet
+inputs:
+  - name: username
+    type: string
+  - name: greeting
+    type: string
+returns: string
+logic:
+  - if:
+      condition: not username
+      then:
+        - return: "Hello, stranger!"
+  - return: greeting + " " + username + "!"

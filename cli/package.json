@@ -1,0 +1,15 @@
+{
+  "name": "yspec",
+  "version": "0.1.0",
+  "description": "YSpec CLI — validate and generate code from .yspec files",
+  "type": "module",
+  "bin": {
+    "yspec": "./bin/yspec.js"
+  },
+  "scripts": {
+    "test": "node --test test/validate.test.js test/generate.test.js"
+  },
+  "dependencies": {
+    "js-yaml": "^4.1.0"
+  }
+}

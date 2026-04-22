@@ -1,0 +1,65 @@
+module: task-manager
+imports:
+  - from: ./db.yspec
+    symbols:
+      - saveTask
+      - loadTasks
+exports:
+  - addTask
+  - getActiveTasks
+
+functions:
+  - function: addTask
+    async: true
+    inputs:
+      - name: title
+        type: string
+      - name: priority
+        type: number
+    returns: object
+    logic:
+      - set:
+          task: "{ title: title, priority: priority, done: false, createdAt: Date.now() }"
+      - try:
+          do:
+            - set:
+                saved:
+                  await:
+                    call: saveTask
+                    args:
+                      - task
+            - return: saved
+          except:
+            - type: DatabaseError
+              then:
+                - raise:
+                    type: TaskCreationError
+                    message: "Failed to save task"
+
+  - function: getActiveTasks
+    async: true
+    inputs:
+      - name: userId
+        type: string
+    returns: "list<object>"
+    logic:
+      - set:
+          allTasks:
+            await:
+              call: loadTasks
+              args:
+                - userId
+      - set:
+          active: "[]"
+      - forEach:
+          item: task
+          in: allTasks
+          do:
+            - if:
+                condition: not task.done
+                then:
+                  - call:
+                      name: active.push
+                      args:
+                        - task
+      - return: active
