@@ -91,13 +91,33 @@ export function resolveExpression(value, scope) {
   if (typeof value === 'string') {
     if (scope) {
       const trimmed = value.trim();
+
+      // If it's a template literal (backtick string), don't do scope resolution
+      // — the user wrote raw JS inside backticks intentionally
+      if (trimmed.startsWith('`') || trimmed.startsWith('"') && trimmed.includes('${')) {
+        return trimmed;
+      }
+
       // Simple single-identifier — direct resolve
       if (/^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(trimmed)) {
         return scope.resolve(trimmed);
       }
+
       // Compound expression — resolve each identifier token through scope
-      // Replace word-boundary identifiers that are class fields
+      // Skip JS keywords and common builtins
+      const JS_SKIP = new Set([
+        'true', 'false', 'null', 'undefined', 'new', 'typeof', 'instanceof',
+        'return', 'if', 'else', 'for', 'while', 'const', 'let', 'var',
+        'function', 'class', 'this', 'Math', 'Date', 'Array', 'Object',
+        'String', 'Number', 'Boolean', 'console', 'JSON', 'Promise',
+        'Error', 'Map', 'Set', 'Symbol', 'RegExp', 'parseInt', 'parseFloat',
+        'of', 'in', 'not', 'and', 'or', 'push', 'pop', 'shift', 'filter',
+        'map', 'reduce', 'forEach', 'find', 'concat', 'splice', 'indexOf',
+        'length', 'floor', 'random', 'log', 'now', 'from',
+      ]);
+
       return trimmed.replace(/\b([a-zA-Z_$][a-zA-Z0-9_$]*)\b/g, (match) => {
+        if (JS_SKIP.has(match)) return match;
         return scope.resolve(match);
       });
     }

@@ -101,6 +101,7 @@ function parseModuleDoc(raw) {
     name: raw.module,
     imports: (raw.imports || []).map(parseImport),
     exports: raw.exports || [],
+    variables: (raw.variables || []).map(parseVariable),
     functions: (raw.functions || []).map(fn => parseFunctionDoc(fn)),
     classes: (raw.classes || []).map(cls => parseClassDoc(cls)),
     macros: (raw.macros || []).map(m => parseMacroDoc(m)),
@@ -168,6 +169,18 @@ function parseField(field) {
     name: field.name,
     type: field.type || null,
     default: field.default !== undefined ? field.default : undefined
+  };
+}
+
+/**
+ * Parse a variable definition.
+ */
+function parseVariable(variable) {
+  return {
+    name: variable.name,
+    type: variable.type || null,
+    value: variable.value,
+    const: variable.const !== undefined ? variable.const : true
   };
 }
 

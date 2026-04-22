@@ -85,6 +85,20 @@ function generateModule(mod) {
   // Collect export names
   const exportNames = new Set(mod.exports);
 
+  // Variables
+  if (mod.variables && mod.variables.length > 0) {
+    for (const v of mod.variables) {
+      const exportPrefix = exportNames.has(v.name) ? 'export ' : '';
+      const keyword = v.const ? 'const' : 'let';
+      // Add JSDoc type if specified
+      if (v.type) {
+        parts.push(`/** @type {${v.type}} */`);
+      }
+      parts.push(`${exportPrefix}${keyword} ${v.name} = ${resolveExpression(v.value, null)};`);
+    }
+    parts.push('');
+  }
+
   // Classes
   for (const cls of mod.classes) {
     const exportPrefix = exportNames.has(cls.name) ? 'export ' : '';
@@ -127,8 +141,11 @@ function generateClass(cls, depth, exportPrefix = '') {
   const extendsClause = cls.extends ? ` extends ${cls.extends}` : '';
   lines.push(`${ind}${exportPrefix}class ${cls.name}${extendsClause} {`);
 
-  // Constructor from fields
-  if (cls.fields.length > 0) {
+  // Check if there's an explicit constructor in methods
+  const hasExplicitConstructor = cls.methods.some(m => m.name === 'constructor');
+
+  // Auto-generate constructor from fields ONLY if no explicit constructor
+  if (cls.fields.length > 0 && !hasExplicitConstructor) {
     lines.push(`${ind}${INDENT}constructor() {`);
     for (const field of cls.fields) {
       const val = field.default !== undefined ? ` ${formatValue(field.default)}` : ' undefined';
@@ -142,7 +159,12 @@ function generateClass(cls, depth, exportPrefix = '') {
   const fieldNames = cls.fields.map(f => f.name);
   for (const method of cls.methods) {
     const params = method.inputs.map(i => i.name).join(', ');
+    const isConstructor = method.name === 'constructor';
+    // In constructor, params are inputs but field names should still resolve to this.
+    // We create scope with params declared, but fields tracked separately
     const scope = functionScope(method.inputs.map(i => i.name), fieldNames);
+    // For constructor: mark it so generateSet knows to use this. for field targets
+    scope._isConstructor = isConstructor;
     const asyncPrefix = method.async ? 'async ' : '';
 
     lines.push(`${ind}${INDENT}${asyncPrefix}${method.name}(${params}) {`);
@@ -209,8 +231,16 @@ function generateSet(stmt, depth, scope) {
   for (const { name, value } of stmt.assignments) {
     const resolved = resolveExpression(value, scope);
 
+    // Dotted property names (creature.age, slot.quantity) — always direct assignment
+    if (name.includes('.')) {
+      lines.push(`${ind}${name} = ${resolved};`);
+    }
+    // In constructor: if the name is a field, always use this. regardless of params
+    else if (scope._isConstructor && scope.isField(name)) {
+      lines.push(`${ind}this.${name} = ${resolved};`);
+    }
     // If it's a class field, always assign via this.
-    if (scope.isField(name) && !scope.declared.has(name)) {
+    else if (scope.isField(name) && !scope.declared.has(name)) {
       lines.push(`${ind}this.${name} = ${resolved};`);
     } else {
       const isNew = scope.declare(name);
