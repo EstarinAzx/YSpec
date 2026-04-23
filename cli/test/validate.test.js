@@ -56,7 +56,7 @@ function expectInvalid(yamlStr, label, expectedCategory) {
 describe('Invalid examples from validation-rules.md', () => {
 
   expectInvalid(
-    `inputs:\n  - value\nlogic:\n  - return: value`,
+    `inputs:\n  - value`,
     'No top-level kind',
     'TopLevelShapeError'
   );

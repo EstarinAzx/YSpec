@@ -168,6 +168,28 @@ function generateClass(cls, depth, exportPrefix = '') {
     const asyncPrefix = method.async ? 'async ' : '';
 
     lines.push(`${ind}${INDENT}${asyncPrefix}${method.name}(${params}) {`);
+
+    // For explicit constructors: inject field defaults not covered by logic
+    if (isConstructor && cls.fields.length > 0) {
+      // Collect field names that are explicitly assigned in constructor logic
+      const assignedFields = new Set();
+      for (const stmt of (method.logic || [])) {
+        if (stmt.type === 'set' && stmt.assignments) {
+          for (const a of stmt.assignments) {
+            // Handle both "this.field" and just "field" (which gets resolved to this.field)
+            const fieldName = a.name.startsWith('this.') ? a.name.slice(5) : a.name;
+            assignedFields.add(fieldName);
+          }
+        }
+      }
+      // Inject defaults for unassigned fields
+      for (const field of cls.fields) {
+        if (!assignedFields.has(field.name) && field.default !== undefined) {
+          lines.push(`${ind}${INDENT}${INDENT}this.${field.name} = ${formatValue(field.default)};`);
+        }
+      }
+    }
+
     lines.push(generateLogicBlock(method.logic, depth + 2, scope));
     lines.push(`${ind}${INDENT}}`);
   }

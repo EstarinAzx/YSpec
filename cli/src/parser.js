@@ -45,6 +45,38 @@ export function parse(source, filename = '<input>') {
   const kinds = TOP_LEVEL_KINDS.filter(k => k in raw);
 
   if (kinds.length === 0) {
+    // Script mode: bare logic: | with no document kind
+    if ('logic' in raw) {
+      const doc = {
+        kind: 'module',
+        name: filename.replace(/\.yspec$/, ''),
+        raw,
+        filename
+      };
+      doc.ast = {
+        type: 'module',
+        name: doc.name,
+        imports: (raw.imports || []).map(parseImport),
+        exports: [],
+        variables: [],
+        functions: [],
+        classes: [],
+        macros: [],
+        logic: parseLogicBlock(raw.logic || [])
+      };
+      // Parse const:/let: if present
+      if (raw.const && typeof raw.const === 'object') {
+        for (const [name, value] of Object.entries(raw.const)) {
+          doc.ast.variables.push({ name, type: null, value, const: true });
+        }
+      }
+      if (raw.let && typeof raw.let === 'object') {
+        for (const [name, value] of Object.entries(raw.let)) {
+          doc.ast.variables.push({ name, type: null, value, const: false });
+        }
+      }
+      return doc;
+    }
     throw new TopLevelShapeError(
       `No top-level document kind found. Must be one of: ${TOP_LEVEL_KINDS.join(', ')}`,
       { path: filename }
