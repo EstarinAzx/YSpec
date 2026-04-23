@@ -5,6 +5,8 @@
   "patterns": [
     { "include": "#inline-function-def" },
     { "include": "#inline-class-def" },
+    { "include": "#inline-const-def" },
+    { "include": "#inline-let-def" },
     { "include": "#comment" },
     { "include": "#document-kind" },
     { "include": "#structure-keys" },
@@ -26,6 +28,22 @@
       "captures": {
         "1": { "name": "keyword.control.yspec" },
         "2": { "name": "entity.name.function.yspec" },
+        "3": { "name": "punctuation.separator.key-value.yspec" }
+      }
+    },
+    "inline-const-def": {
+      "match": "^(const)\\s+(\\w+)\\s*(:)",
+      "captures": {
+        "1": { "name": "storage.type.yspec" },
+        "2": { "name": "variable.other.constant.yspec" },
+        "3": { "name": "punctuation.separator.key-value.yspec" }
+      }
+    },
+    "inline-let-def": {
+      "match": "^(let)\\s+(\\w+)\\s*(:)",
+      "captures": {
+        "1": { "name": "storage.type.yspec" },
+        "2": { "name": "variable.other.declaration.yspec" },
         "3": { "name": "punctuation.separator.key-value.yspec" }
       }
     },

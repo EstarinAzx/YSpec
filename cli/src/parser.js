@@ -64,7 +64,7 @@ export function parse(source, filename = '<input>') {
         macros: [],
         logic: parseLogicBlock(raw.logic || [])
       };
-      // Parse const:/let: if present
+      // Parse const:/let: block and inline const <name>:/let <name>: declarations
       if (raw.const && typeof raw.const === 'object') {
         for (const [name, value] of Object.entries(raw.const)) {
           doc.ast.variables.push({ name, type: null, value, const: true });
@@ -75,6 +75,7 @@ export function parse(source, filename = '<input>') {
           doc.ast.variables.push({ name, type: null, value, const: false });
         }
       }
+      doc.ast.variables.push(...extractInlineVariables(raw));
       return doc;
     }
     throw new TopLevelShapeError(
@@ -160,6 +161,26 @@ function extractInlineClasses(raw) {
 }
 
 /**
+ * Extract inline `const <name>:` and `let <name>:` keys from a raw YAML object.
+ * Returns an array of variable definition objects.
+ */
+function extractInlineVariables(raw) {
+  const vars = [];
+  for (const key of Object.keys(raw)) {
+    const constMatch = key.match(/^const\s+(\w+)$/);
+    if (constMatch) {
+      vars.push({ name: constMatch[1], type: null, value: raw[key], const: true });
+      continue;
+    }
+    const letMatch = key.match(/^let\s+(\w+)$/);
+    if (letMatch) {
+      vars.push({ name: letMatch[1], type: null, value: raw[key], const: false });
+    }
+  }
+  return vars;
+}
+
+/**
  * Parse a module document.
  */
 function parseModuleDoc(raw) {
@@ -181,6 +202,8 @@ function parseModuleDoc(raw) {
       variables.push(parseVariable(v));
     }
   }
+  // Inline const <name>: / let <name>: declarations
+  variables.push(...extractInlineVariables(raw));
 
   // Merge functions: list with inline `function <name>:` definitions
   const listFunctions = (raw.functions || []).map(fn => parseFunctionDoc(fn));
