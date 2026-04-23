@@ -11,6 +11,7 @@ import {
   MissingRequiredFieldError,
   InvalidMacroError
 } from './errors.js';
+import { parseLogicText } from './logic-parser.js';
 
 /** Recognized top-level document kinds */
 const TOP_LEVEL_KINDS = ['function', 'module', 'class', 'macro'];
@@ -97,12 +98,31 @@ function parseFunctionDoc(raw) {
  * Parse a module document.
  */
 function parseModuleDoc(raw) {
+  // Parse const: / let: top-level sections (v2 syntax)
+  const variables = [];
+  if (raw.const && typeof raw.const === 'object') {
+    for (const [name, value] of Object.entries(raw.const)) {
+      variables.push({ name, type: null, value, const: true });
+    }
+  }
+  if (raw.let && typeof raw.let === 'object') {
+    for (const [name, value] of Object.entries(raw.let)) {
+      variables.push({ name, type: null, value, const: false });
+    }
+  }
+  // Also support v1 variables: section
+  if (raw.variables) {
+    for (const v of raw.variables) {
+      variables.push(parseVariable(v));
+    }
+  }
+
   return {
     type: 'module',
     name: raw.module,
     imports: (raw.imports || []).map(parseImport),
     exports: raw.exports || [],
-    variables: (raw.variables || []).map(parseVariable),
+    variables,
     functions: (raw.functions || []).map(fn => parseFunctionDoc(fn)),
     classes: (raw.classes || []).map(cls => parseClassDoc(cls)),
     macros: (raw.macros || []).map(m => parseMacroDoc(m)),
@@ -156,9 +176,25 @@ function parseImport(imp) {
 function parseInputs(inputs) {
   return inputs.map(inp => {
     if (typeof inp === 'string') {
+      // v1 shorthand: just a string name
       return { name: inp, type: null };
     }
-    return { name: inp.name, type: inp.type || null };
+    if (typeof inp === 'object' && inp !== null) {
+      // v1 full form: { name: 'x', type: 'string' } — must have BOTH name and type
+      if (inp.name && inp.type) {
+        return { name: inp.name, type: inp.type };
+      }
+      // v2 simplified: single key-value like { id: string } or { name: string }
+      const keys = Object.keys(inp);
+      if (keys.length === 1) {
+        return { name: keys[0], type: inp[keys[0]] || null };
+      }
+      // v1 name-only (no type)
+      if (inp.name && !inp.type) {
+        return { name: inp.name, type: null };
+      }
+    }
+    return { name: String(inp), type: null };
   });
 }
 
@@ -166,11 +202,49 @@ function parseInputs(inputs) {
  * Parse a field definition.
  */
 function parseField(field) {
-  return {
-    name: field.name,
-    type: field.type || null,
-    default: field.default !== undefined ? field.default : undefined
-  };
+  // v2 simplified: { status: 'string = "idle"' } → name, type, default
+  if (typeof field === 'string') {
+    // Just a name: "id"
+    return { name: field, type: null, default: undefined };
+  }
+
+  // v1 full form: { name: 'status', type: 'string', default: 'idle' }
+  if (field.name) {
+    return {
+      name: field.name,
+      type: field.type || null,
+      default: field.default !== undefined ? field.default : undefined
+    };
+  }
+
+  // v2 shorthand: { status: 'string = "idle"' } or { id: 'string' }
+  const keys = Object.keys(field);
+  if (keys.length === 1) {
+    const name = keys[0];
+    const spec = String(field[name]);
+
+    // Parse "type = default" pattern
+    const eqMatch = spec.match(/^(.+?)\s*=\s*(.+)$/);
+    if (eqMatch) {
+      let defaultVal = eqMatch[2].trim();
+      // Try to parse as number/boolean
+      if (defaultVal === 'true') defaultVal = true;
+      else if (defaultVal === 'false') defaultVal = false;
+      else if (defaultVal === 'null') defaultVal = null;
+      else if (!isNaN(Number(defaultVal))) defaultVal = Number(defaultVal);
+      // Strip surrounding quotes
+      else if ((defaultVal.startsWith('"') && defaultVal.endsWith('"')) ||
+               (defaultVal.startsWith("'") && defaultVal.endsWith("'"))) {
+        defaultVal = defaultVal.slice(1, -1);
+      }
+      return { name, type: eqMatch[1].trim(), default: defaultVal };
+    }
+
+    // Just type, no default
+    return { name, type: spec, default: undefined };
+  }
+
+  return { name: String(field), type: null, default: undefined };
 }
 
 /**
@@ -189,6 +263,11 @@ function parseVariable(variable) {
  * Parse a logic block (list of statement nodes).
  */
 export function parseLogicBlock(block) {
+  // v2: logic is a string from YAML literal block (logic: |)
+  if (typeof block === 'string') {
+    return parseLogicText(block);
+  }
+  // v1: logic is a YAML array of statement objects
   if (!Array.isArray(block)) {
     return [];
   }

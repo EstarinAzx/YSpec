@@ -104,7 +104,7 @@ export function resolveExpression(value, scope) {
       }
 
       // Compound expression — resolve each identifier token through scope
-      // Skip JS keywords and common builtins
+      // Skip JS keywords, common builtins, and property accesses (after .)
       const JS_SKIP = new Set([
         'true', 'false', 'null', 'undefined', 'new', 'typeof', 'instanceof',
         'return', 'if', 'else', 'for', 'while', 'const', 'let', 'var',
@@ -116,8 +116,10 @@ export function resolveExpression(value, scope) {
         'length', 'floor', 'random', 'log', 'now', 'from',
       ]);
 
-      return trimmed.replace(/\b([a-zA-Z_$][a-zA-Z0-9_$]*)\b/g, (match) => {
+      return trimmed.replace(/(?<![.])\b([a-zA-Z_$][a-zA-Z0-9_$]*)\b/g, (match, name, offset) => {
         if (JS_SKIP.has(match)) return match;
+        // Don't resolve if preceded by a dot (property access like obj.field)
+        if (offset > 0 && trimmed[offset - 1] === '.') return match;
         return scope.resolve(match);
       });
     }

@@ -580,8 +580,18 @@ function generateDestructure(stmt, depth, scope) {
  * Format a value for JS output.
  */
 function formatValue(val) {
-  if (typeof val === 'string') return `'${val}'`;
+  if (typeof val === 'string') {
+    // JS expressions pass through raw (arrays, objects, template literals, expressions)
+    if (val.startsWith('[') || val.startsWith('{') || val.startsWith('`')
+        || val.startsWith('(') || val.startsWith('new ')
+        || val === '[]' || val === '{}') {
+      return val;
+    }
+    return `'${val}'`;
+  }
   if (val === null || val === undefined) return 'null';
   if (typeof val === 'boolean' || typeof val === 'number') return String(val);
+  // Arrays from YAML get serialized to JS
+  if (Array.isArray(val)) return JSON.stringify(val);
   return JSON.stringify(val);
 }
