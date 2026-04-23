@@ -1,17 +1,19 @@
 #!/usr/bin/env node
 
 /**
- * YSpec CLI — validate and generate code from .yspec files.
+ * YSpec CLI — validate, generate, run, and build .yspec files.
  *
  * Usage:
- *   yspec validate <file.yspec>          Check if a file is valid YSpec
+ *   yspec run <file.yspec>               Transpile and execute
+ *   yspec build <file.yspec>             Compile to .js file
  *   yspec generate <file.yspec>          Generate JavaScript to stdout
- *   yspec generate <file.yspec> -o out   Write to file
+ *   yspec validate <file.yspec>          Check if a file is valid YSpec
  *   yspec watch <file.yspec> -o out      Regenerate on save
  */
 
 import fs from 'fs';
 import path from 'path';
+import { execSync } from 'child_process';
 import { parse } from '../src/parser.js';
 import { validate } from '../src/validator.js';
 import { generate } from '../src/generators/javascript.js';
@@ -54,10 +56,12 @@ function showHelp() {
 ${colorize(c.bold + c.cyan, 'YSpec CLI')} ${colorize(c.dim, 'v0.1.0')}
 
 ${colorize(c.bold, 'Usage:')}
-  yspec validate <file.yspec>                 Validate a YSpec file
-  yspec generate <file.yspec>                 Generate JS to stdout
-  yspec generate <file.yspec> -o <out.js>     Generate JS to file
-  yspec watch <file.yspec> -o <out.js>        Watch & regenerate on save
+  yspec run <file.yspec>                   Transpile and execute
+  yspec build <file.yspec>                 Compile to .js file
+  yspec generate <file.yspec>              Generate JS to stdout
+  yspec generate <file.yspec> -o <out.js>  Generate JS to file
+  yspec validate <file.yspec>              Validate a YSpec file
+  yspec watch <file.yspec> -o <out.js>     Watch & regenerate on save
 
 ${colorize(c.bold, 'Options:')}
   -o, --output <file>    Output file path
@@ -195,6 +199,50 @@ switch (command) {
         }
       }, 100);
     });
+    break;
+  }
+
+  case 'run': {
+    const result = runPipeline(resolvedPath);
+
+    if (!result.success) {
+      console.error(colorize(c.red, `Compilation failed for ${path.basename(resolvedPath)}:`));
+      printErrors(result.errors);
+      process.exit(1);
+    }
+
+    // Write to temp file and execute with Node
+    const tmpDir = path.join(path.dirname(resolvedPath), '.yspec-out');
+    if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
+    const tmpFile = path.join(tmpDir, path.basename(resolvedPath, '.yspec') + '.js');
+    fs.writeFileSync(tmpFile, result.code, 'utf-8');
+
+    try {
+      execSync(`node "${tmpFile}"`, { stdio: 'inherit', cwd: path.dirname(resolvedPath) });
+    } catch (e) {
+      process.exit(e.status || 1);
+    } finally {
+      // Clean up temp file
+      try { fs.unlinkSync(tmpFile); } catch (_) {}
+      try { fs.rmdirSync(tmpDir); } catch (_) {}
+    }
+    break;
+  }
+
+  case 'build': {
+    const result = runPipeline(resolvedPath);
+
+    if (!result.success) {
+      console.error(colorize(c.red, `Compilation failed for ${path.basename(resolvedPath)}:`));
+      printErrors(result.errors);
+      process.exit(1);
+    }
+
+    const outPath = flags.output
+      ? path.resolve(flags.output)
+      : resolvedPath.replace(/\.yspec$/, '.js');
+    fs.writeFileSync(outPath, result.code, 'utf-8');
+    console.log(colorize(c.green, `✓ Compiled ${path.basename(resolvedPath)} → ${path.basename(outPath)}`));
     break;
   }
 
