@@ -30,12 +30,30 @@
     "structure-keys": {
       "patterns": [
         {
-          "comment": "Top-level document kind",
+          "comment": "Top-level document kind (module: x, function: x, class: x, macro: x)",
           "match": "^(module|function|class|macro)(:)\\s*(.+)$",
           "captures": {
             "1": { "name": "keyword.control.document.yspec" },
             "2": { "name": "punctuation.separator.key-value.yspec" },
             "3": { "name": "entity.name.type.yspec" }
+          }
+        },
+        {
+          "comment": "Inline function definition: function name:",
+          "match": "^(function)\\s+(\\w+)(:)\\s*$",
+          "captures": {
+            "1": { "name": "keyword.control.document.yspec" },
+            "2": { "name": "entity.name.function.yspec" },
+            "3": { "name": "punctuation.separator.key-value.yspec" }
+          }
+        },
+        {
+          "comment": "Inline class definition: class Name:",
+          "match": "^(class)\\s+(\\w+)(:)\\s*$",
+          "captures": {
+            "1": { "name": "keyword.control.document.yspec" },
+            "2": { "name": "entity.name.class.yspec" },
+            "3": { "name": "punctuation.separator.key-value.yspec" }
           }
         },
         {
