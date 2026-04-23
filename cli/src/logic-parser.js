@@ -39,7 +39,7 @@ function tokenizeLines(text) {
 
     // Calculate indent (number of leading spaces)
     const indent = raw.length - raw.trimStart().length;
-    const content = raw.trim();
+    let content = raw.trim();
 
     // Skip comment-only lines
     if (content.startsWith('#')) {
@@ -47,10 +47,49 @@ function tokenizeLines(text) {
       continue;
     }
 
+    // Handle multi-line expressions: join continuation lines when brackets are unclosed
+    let bracketDepth = countBracketDepth(content);
+    while (bracketDepth > 0 && i + 1 < rawLines.length) {
+      i++;
+      const nextLine = rawLines[i].trim();
+      if (nextLine === '') continue; // skip blank lines within brackets
+      content += '\n' + nextLine;
+      bracketDepth = countBracketDepth(content);
+    }
+
     tokens.push({ line: i + 1, indent, content });
   }
 
   return tokens;
+}
+
+/**
+ * Count net bracket depth in a string, respecting string literals.
+ * Returns > 0 if there are unclosed brackets.
+ */
+function countBracketDepth(str) {
+  let depth = 0;
+  let inSingle = false;
+  let inDouble = false;
+  let inTemplate = false;
+
+  for (let i = 0; i < str.length; i++) {
+    const ch = str[i];
+    const prev = i > 0 ? str[i - 1] : '';
+
+    if (prev === '\\') continue;
+
+    if (ch === "'" && !inDouble && !inTemplate) { inSingle = !inSingle; continue; }
+    if (ch === '"' && !inSingle && !inTemplate) { inDouble = !inDouble; continue; }
+    if (ch === '`' && !inSingle && !inDouble) { inTemplate = !inTemplate; continue; }
+
+    if (inSingle || inDouble || inTemplate) continue;
+
+    if (ch === '(' || ch === '[' || ch === '{') depth++;
+    if (ch === ')' || ch === ']' || ch === '}') depth--;
+  }
+
+  return depth;
 }
 
 // ─── Block Parser ──────────────────────────────────────────────────
