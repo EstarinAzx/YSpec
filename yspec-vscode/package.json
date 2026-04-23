@@ -5,7 +5,7 @@
   "version": "0.1.0",
   "publisher": "xethryon",
   "engines": {
-    "vscode": "^1.80.0"
+    "vscode": "*"
   },
   "categories": ["Programming Languages"],
   "contributes": {
@@ -14,11 +14,7 @@
         "id": "yspec",
         "aliases": ["YSpec", "yspec"],
         "extensions": [".yspec"],
-        "configuration": "./language-configuration.json",
-        "icon": {
-          "light": "./icon.png",
-          "dark": "./icon.png"
-        }
+        "configuration": "./language-configuration.json"
       }
     ],
     "grammars": [
@@ -27,6 +23,48 @@
         "scopeName": "source.yspec",
         "path": "./syntaxes/yspec.tmLanguage.json"
       }
-    ]
+    ],
+    "configurationDefaults": {
+      "editor.tokenColorCustomizations": {
+        "textMateRules": [
+          {
+            "scope": "keyword.control.document.yspec",
+            "settings": { "foreground": "#C586C0", "fontStyle": "bold" }
+          },
+          {
+            "scope": "entity.name.function.yspec",
+            "settings": { "foreground": "#DCDCAA" }
+          },
+          {
+            "scope": "entity.name.type.yspec",
+            "settings": { "foreground": "#4EC9B0" }
+          },
+          {
+            "scope": "entity.name.class.yspec",
+            "settings": { "foreground": "#4EC9B0" }
+          },
+          {
+            "scope": "keyword.other.section.yspec",
+            "settings": { "foreground": "#569CD6" }
+          },
+          {
+            "scope": "storage.type.yspec",
+            "settings": { "foreground": "#569CD6" }
+          },
+          {
+            "scope": "entity.name.function.call.yspec",
+            "settings": { "foreground": "#DCDCAA" }
+          },
+          {
+            "scope": "variable.other.constant.yspec",
+            "settings": { "foreground": "#4FC1FF" }
+          },
+          {
+            "scope": "support.type.yspec",
+            "settings": { "foreground": "#4EC9B0" }
+          }
+        ]
+      }
+    }
   }
 }

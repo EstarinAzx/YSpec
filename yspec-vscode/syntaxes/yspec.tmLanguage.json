@@ -3,7 +3,10 @@
   "name": "YSpec",
   "scopeName": "source.yspec",
   "patterns": [
+    { "include": "#inline-function-def" },
+    { "include": "#inline-class-def" },
     { "include": "#comment" },
+    { "include": "#document-kind" },
     { "include": "#structure-keys" },
     { "include": "#logic-block-start" },
     { "include": "#control-flow" },
@@ -18,6 +21,22 @@
     { "include": "#variables" }
   ],
   "repository": {
+    "inline-function-def": {
+      "match": "^(function)\\s+(\\w+)\\s*(:)",
+      "captures": {
+        "1": { "name": "keyword.control.yspec" },
+        "2": { "name": "entity.name.function.yspec" },
+        "3": { "name": "punctuation.separator.key-value.yspec" }
+      }
+    },
+    "inline-class-def": {
+      "match": "^(class)\\s+(\\w+)\\s*(:)",
+      "captures": {
+        "1": { "name": "keyword.control.yspec" },
+        "2": { "name": "entity.name.class.yspec" },
+        "3": { "name": "punctuation.separator.key-value.yspec" }
+      }
+    },
     "comment": {
       "patterns": [
         {
@@ -27,45 +46,27 @@
       ]
     },
 
+    "document-kind": {
+      "match": "^(module|macro)(:)\\s*(.+)$",
+      "captures": {
+        "1": { "name": "keyword.control.yspec" },
+        "2": { "name": "punctuation.separator.key-value.yspec" },
+        "3": { "name": "entity.name.type.yspec" }
+      }
+    },
+
     "structure-keys": {
       "patterns": [
         {
-          "comment": "Top-level document kind (module: x, function: x, class: x, macro: x)",
-          "match": "^(module|function|class|macro)(:)\\s*(.+)$",
-          "captures": {
-            "1": { "name": "keyword.control.document.yspec" },
-            "2": { "name": "punctuation.separator.key-value.yspec" },
-            "3": { "name": "entity.name.type.yspec" }
-          }
-        },
-        {
-          "comment": "Inline function definition: function name:",
-          "match": "^(function)\\s+(\\w+)(:)\\s*$",
-          "captures": {
-            "1": { "name": "keyword.control.document.yspec" },
-            "2": { "name": "entity.name.function.yspec" },
-            "3": { "name": "punctuation.separator.key-value.yspec" }
-          }
-        },
-        {
-          "comment": "Inline class definition: class Name:",
-          "match": "^(class)\\s+(\\w+)(:)\\s*$",
-          "captures": {
-            "1": { "name": "keyword.control.document.yspec" },
-            "2": { "name": "entity.name.class.yspec" },
-            "3": { "name": "punctuation.separator.key-value.yspec" }
-          }
-        },
-        {
-          "comment": "Structure section keys (fields, methods, classes, etc)",
-          "match": "^(\\s*)(functions|classes|methods|fields|inputs|exports|imports|variables|macros|logic)(:)",
+          "comment": "Structure section keys",
+          "match": "^(\\s*)(functions|classes|methods|fields|inputs|exports|imports|variables|macros)(:)",
           "captures": {
             "2": { "name": "keyword.other.section.yspec" },
             "3": { "name": "punctuation.separator.key-value.yspec" }
           }
         },
         {
-          "comment": "const: and let: top-level variable sections",
+          "comment": "const/let sections",
           "match": "^(const|let)(:)\\s*$",
           "captures": {
             "1": { "name": "storage.type.yspec" },
@@ -73,21 +74,21 @@
           }
         },
         {
-          "comment": "Function/method definition",
+          "comment": "List function definition",
           "match": "(- )(function)(:)\\s*(\\w+)",
           "captures": {
             "1": { "name": "punctuation.definition.list.yspec" },
-            "2": { "name": "keyword.other.function-def.yspec" },
+            "2": { "name": "keyword.control.yspec" },
             "3": { "name": "punctuation.separator.key-value.yspec" },
             "4": { "name": "entity.name.function.yspec" }
           }
         },
         {
-          "comment": "Class definition",
+          "comment": "List class definition",
           "match": "(- )(class)(:)\\s*(\\w+)",
           "captures": {
             "1": { "name": "punctuation.definition.list.yspec" },
-            "2": { "name": "keyword.other.class-def.yspec" },
+            "2": { "name": "keyword.control.yspec" },
             "3": { "name": "punctuation.separator.key-value.yspec" },
             "4": { "name": "entity.name.class.yspec" }
           }
@@ -106,7 +107,6 @@
     "logic-block-start": {
       "patterns": [
         {
-          "comment": "logic: | pipe block indicator",
           "match": "(logic)(:)\\s*(\\|)\\s*$",
           "captures": {
             "1": { "name": "keyword.other.section.yspec" },
@@ -120,7 +120,6 @@
     "control-flow": {
       "patterns": [
         {
-          "comment": "if condition:",
           "match": "\\b(if)\\s+(.+?)(:)\\s*$",
           "captures": {
             "1": { "name": "keyword.control.conditional.yspec" },
@@ -129,7 +128,6 @@
           }
         },
         {
-          "comment": "elseif condition:",
           "match": "\\b(elseif)\\s+(.+?)(:)\\s*$",
           "captures": {
             "1": { "name": "keyword.control.conditional.yspec" },
@@ -138,7 +136,6 @@
           }
         },
         {
-          "comment": "else:",
           "match": "\\b(else)(:)\\s*$",
           "captures": {
             "1": { "name": "keyword.control.conditional.yspec" },
@@ -146,7 +143,6 @@
           }
         },
         {
-          "comment": "while condition:",
           "match": "\\b(while)\\s+(.+?)(:)\\s*$",
           "captures": {
             "1": { "name": "keyword.control.loop.yspec" },
@@ -155,7 +151,6 @@
           }
         },
         {
-          "comment": "for item in collection:",
           "match": "\\b(for)\\s+(\\w+)\\s+(in)\\s+(.+?)(:)\\s*$",
           "captures": {
             "1": { "name": "keyword.control.loop.yspec" },
@@ -166,7 +161,6 @@
           }
         },
         {
-          "comment": "for var from start to end:",
           "match": "\\b(for)\\s+(\\w+)\\s+(from)\\s+(.+?)\\s+(to)\\s+(.+?)(:)\\s*$",
           "captures": {
             "1": { "name": "keyword.control.loop.yspec" },
@@ -179,7 +173,6 @@
           }
         },
         {
-          "comment": "try:",
           "match": "\\b(try)(:)\\s*$",
           "captures": {
             "1": { "name": "keyword.control.trycatch.yspec" },
@@ -187,7 +180,6 @@
           }
         },
         {
-          "comment": "catch Type as name:",
           "match": "\\b(catch)\\s+(\\w+)(?:\\s+(as)\\s+(\\w+))?(:)\\s*$",
           "captures": {
             "1": { "name": "keyword.control.trycatch.yspec" },
@@ -198,7 +190,6 @@
           }
         },
         {
-          "comment": "finally:",
           "match": "\\b(finally)(:)\\s*$",
           "captures": {
             "1": { "name": "keyword.control.trycatch.yspec" },
@@ -211,7 +202,6 @@
     "declarations": {
       "patterns": [
         {
-          "comment": "const/let variable declaration",
           "match": "\\b(const|let)\\s+([a-zA-Z_${}\\[\\], ]+)\\s*(=)",
           "captures": {
             "1": { "name": "storage.type.yspec" },
@@ -220,12 +210,10 @@
           }
         },
         {
-          "comment": "return statement",
           "match": "\\b(return)\\b",
           "name": "keyword.control.return.yspec"
         },
         {
-          "comment": "raise/throw",
           "match": "\\b(raise)\\s+(\\w+)",
           "captures": {
             "1": { "name": "keyword.control.throw.yspec" },
@@ -233,7 +221,6 @@
           }
         },
         {
-          "comment": "await",
           "match": "\\b(await)\\b",
           "name": "keyword.control.await.yspec"
         }
@@ -327,12 +314,10 @@
     "types": {
       "patterns": [
         {
-          "comment": "Type annotations in fields/inputs",
           "match": "\\b(string|number|boolean|object|any|void|Function|Array|Promise)\\b",
           "name": "support.type.yspec"
         },
         {
-          "comment": "Array types like string[] or object[]",
           "match": "\\b(\\w+)(\\[\\])",
           "captures": {
             "1": { "name": "support.type.yspec" },
@@ -345,7 +330,6 @@
     "function-calls": {
       "patterns": [
         {
-          "comment": "Method/function calls",
           "match": "\\b([a-zA-Z_$][a-zA-Z0-9_$.]*)(\\()",
           "captures": {
             "1": { "name": "entity.name.function.call.yspec" },
@@ -358,12 +342,10 @@
     "variables": {
       "patterns": [
         {
-          "comment": "this keyword",
           "match": "\\b(this)\\b",
           "name": "variable.language.this.yspec"
         },
         {
-          "comment": "SCREAMING_CASE constants",
           "match": "\\b([A-Z][A-Z0-9_]+)\\b",
           "name": "variable.other.constant.yspec"
         }
