@@ -175,8 +175,9 @@ function validateImport(imp, errors, path) {
   if (!imp.from) {
     errors.push(new InvalidImportError('Import must have "from"', { path }));
   }
-  if (!imp.symbols || imp.symbols.length === 0) {
-    errors.push(new InvalidImportError('Import must have "symbols"', { path }));
+  // Local imports require symbols; npm/builtin can be default imports
+  if (imp.kind === 'local' && (!imp.symbols || imp.symbols.length === 0) && !imp.defaultAs) {
+    errors.push(new InvalidImportError('Local import must have "symbols"', { path }));
   }
 }
 

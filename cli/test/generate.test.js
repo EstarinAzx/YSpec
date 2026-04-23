@@ -366,3 +366,133 @@ functions:
     expectContains(output, 'error instanceof NetworkError', 'catch handler');
   });
 });
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Inline function/class/const syntax (v2)
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('Inline declarations (v2 syntax)', () => {
+
+  it('generates inline function definitions', () => {
+    const output = gen(`module: test
+function greet:
+  inputs:
+    - name: string
+  logic: |
+    console.log(\`Hello \${name}\`)
+logic: |
+  greet("World")`);
+    expectContains(output, 'function greet(name)', 'inline function');
+    expectContains(output, 'greet("World");', 'function call');
+  });
+
+  it('generates inline const declarations', () => {
+    const output = gen(`module: test
+const SPEED: 30
+const MAX: 100
+logic: |
+  console.log(SPEED)`);
+    expectContains(output, 'const SPEED = 30;', 'const SPEED');
+    expectContains(output, 'const MAX = 100;', 'const MAX');
+  });
+
+  it('generates inline let declarations', () => {
+    const output = gen(`module: test
+let counter: 0
+logic: |
+  counter = counter + 1`);
+    expectContains(output, 'let counter = 0;', 'let counter');
+  });
+
+  it('mixes inline and block const', () => {
+    const output = gen(`module: test
+const INLINE: 42
+const:
+  BLOCK: 99
+logic: |
+  console.log(INLINE + BLOCK)`);
+    expectContains(output, 'const INLINE = 42;', 'inline const');
+    expectContains(output, 'const BLOCK = 99;', 'block const');
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// NPM and builtin imports
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('NPM and builtin imports', () => {
+
+  it('generates default npm import', () => {
+    const output = gen(`module: server
+imports:
+  - from: express
+logic: |
+  const app = express()`);
+    expectContains(output, "import express from 'express';", 'npm default import');
+  });
+
+  it('generates named npm import', () => {
+    const output = gen(`module: server
+imports:
+  - from: express
+    symbols: [Router]
+logic: |
+  const r = Router()`);
+    expectContains(output, "import { Router } from 'express';", 'npm named import');
+  });
+
+  it('generates aliased default import', () => {
+    const output = gen(`module: server
+imports:
+  - from: express
+    as: app
+logic: |
+  app.listen(3000)`);
+    expectContains(output, "import app from 'express';", 'aliased import');
+  });
+
+  it('generates node builtin import', () => {
+    const output = gen(`module: fileUtils
+imports:
+  - from: node:fs
+    symbols: [readFile, writeFile]
+logic: |
+  readFile("test.txt")`);
+    expectContains(output, "import { readFile, writeFile } from 'node:fs';", 'node builtin');
+  });
+
+  it('does not rewrite npm import paths', () => {
+    const output = gen(`module: app
+imports:
+  - from: express
+logic: |
+  console.log("ok")`);
+    // Should NOT try to do .yspec -> .js conversion on npm packages
+    assert.ok(!output.includes('express.js'), 'should not rewrite npm path');
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Script mode
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('Script mode', () => {
+
+  it('generates from bare logic block', () => {
+    const output = gen(`logic: |
+  console.log("Hello")`);
+    expectContains(output, 'console.log("Hello");', 'bare logic output');
+  });
+
+  it('generates script with inline functions', () => {
+    const output = gen(`function greet:
+  inputs:
+    - name: string
+  logic: |
+    console.log(name)
+logic: |
+  greet("World")`);
+    expectContains(output, 'function greet(name)', 'script function');
+    expectContains(output, 'greet("World");', 'script call');
+  });
+});

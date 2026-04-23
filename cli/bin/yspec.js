@@ -56,6 +56,7 @@ function showHelp() {
 ${colorize(c.bold + c.cyan, 'YSpec CLI')} ${colorize(c.dim, 'v0.1.0')}
 
 ${colorize(c.bold, 'Usage:')}
+  yspec init <name>                       Create a new YSpec project
   yspec run <file.yspec>                   Transpile and execute
   yspec build <file.yspec>                 Compile to .js file
   yspec generate <file.yspec>              Generate JS to stdout
@@ -71,6 +72,56 @@ ${colorize(c.bold, 'Options:')}
 
 if (!command || command === '--help' || command === '-h') {
   showHelp();
+  process.exit(0);
+}
+
+// ── Init command (doesn't need an input file) ──────────────────────────────
+if (command === 'init') {
+  const projectName = inputFile || 'my-yspec-app';
+  const projectDir = path.resolve(projectName);
+
+  if (fs.existsSync(projectDir)) {
+    console.error(colorize(c.red, `Error: Directory '${projectName}' already exists.`));
+    process.exit(1);
+  }
+
+  fs.mkdirSync(projectDir, { recursive: true });
+
+  // package.json
+  const pkg = {
+    name: projectName,
+    version: '1.0.0',
+    type: 'module',
+    scripts: {
+      dev: `yspec run main.yspec`,
+      build: `yspec build main.yspec`
+    }
+  };
+  fs.writeFileSync(path.join(projectDir, 'package.json'), JSON.stringify(pkg, null, 2) + '\n');
+
+  // main.yspec
+  const mainYspec = `# ${projectName}
+module: main
+
+function greet:
+  inputs:
+    - name: string
+  logic: |
+    console.log(\`Hello \${name}!\`)
+
+logic: |
+  greet("World")
+`;
+  fs.writeFileSync(path.join(projectDir, 'main.yspec'), mainYspec);
+
+  // README.md
+  const readme = `# ${projectName}\n\nA YSpec project.\n\n## Getting Started\n\n\`\`\`bash\nyspec run main.yspec\n\`\`\`\n`;
+  fs.writeFileSync(path.join(projectDir, 'README.md'), readme);
+
+  console.log(colorize(c.green, `\n  ✓ Created project '${projectName}'\n`));
+  console.log(`  ${colorize(c.dim, 'Next steps:')}`);
+  console.log(`    cd ${projectName}`);
+  console.log(`    yspec run main.yspec\n`);
   process.exit(0);
 }
 
@@ -98,29 +149,33 @@ function runPipeline(filePath) {
   try {
     doc = parse(source, filename);
   } catch (err) {
-    return { success: false, errors: [err], doc: null, code: null };
+    return { success: false, errors: [err], doc: null, code: null, source };
   }
 
   // Validate
   const errors = validate(doc);
   if (errors.length > 0) {
-    return { success: false, errors, doc, code: null };
+    return { success: false, errors, doc, code: null, source };
   }
 
   // Generate
   try {
     const code = generate(doc);
-    return { success: true, errors: [], doc, code };
+    return { success: true, errors: [], doc, code, source };
   } catch (err) {
-    return { success: false, errors: [err], doc, code: null };
+    return { success: false, errors: [err], doc, code: null, source };
   }
 }
 
-function printErrors(errors) {
+function printErrors(errors, source = null) {
   for (const err of errors) {
-    const category = err.category || 'Error';
-    const ctx = err.context?.path ? ` ${colorize(c.dim, `at ${err.context.path}`)}` : '';
-    console.error(`  ${colorize(c.red, `✗ [${category}]`)}${ctx} ${err.message}`);
+    if (source && err.format) {
+      console.error(colorize(c.red, '  ✗ ') + err.format(source));
+    } else {
+      const category = err.category || 'Error';
+      const ctx = err.context?.path ? ` ${colorize(c.dim, `at ${err.context.path}`)}` : '';
+      console.error(`  ${colorize(c.red, `✗ [${category}]`)}${ctx} ${err.message}`);
+    }
   }
 }
 
@@ -135,7 +190,7 @@ switch (command) {
       process.exit(0);
     } else {
       console.error(colorize(c.red, `  Found ${result.errors.length} error(s):`));
-      printErrors(result.errors);
+      printErrors(result.errors, result.source);
       process.exit(1);
     }
     break;
@@ -146,7 +201,7 @@ switch (command) {
 
     if (!result.success) {
       console.error(colorize(c.red, `Validation failed for ${path.basename(resolvedPath)}:`));
-      printErrors(result.errors);
+      printErrors(result.errors, result.source);
       process.exit(1);
     }
 
@@ -177,7 +232,7 @@ switch (command) {
       console.log(colorize(c.green, `  ✓ Generated (${timestamp()})`));
     } else {
       console.error(colorize(c.red, `  ✗ Errors (${timestamp()}):`));
-      printErrors(initial.errors);
+      printErrors(initial.errors, initial.source);
     }
 
     // Watch for changes
@@ -192,7 +247,7 @@ switch (command) {
             console.log(colorize(c.green, `  ✓ Regenerated (${timestamp()})`));
           } else {
             console.error(colorize(c.red, `  ✗ Errors (${timestamp()}):`));
-            printErrors(result.errors);
+            printErrors(result.errors, result.source);
           }
         } catch (e) {
           console.error(colorize(c.red, `  ✗ Crash: ${e.message}`));
@@ -207,7 +262,7 @@ switch (command) {
 
     if (!result.success) {
       console.error(colorize(c.red, `Compilation failed for ${path.basename(resolvedPath)}:`));
-      printErrors(result.errors);
+      printErrors(result.errors, result.source);
       process.exit(1);
     }
 
@@ -234,7 +289,7 @@ switch (command) {
 
     if (!result.success) {
       console.error(colorize(c.red, `Compilation failed for ${path.basename(resolvedPath)}:`));
-      printErrors(result.errors);
+      printErrors(result.errors, result.source);
       process.exit(1);
     }
 

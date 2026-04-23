@@ -1,7 +1,7 @@
 {
   "name": "yspec",
   "version": "0.1.0",
-  "description": "YSpec CLI — validate and generate code from .yspec files",
+  "description": "YSpec — a YAML-structured language that transpiles to JavaScript. Clean syntax, zero boilerplate.",
   "type": "module",
   "bin": {
     "yspec": "./bin/yspec.js"
@@ -9,6 +9,30 @@
   "scripts": {
     "test": "node --test test/validate.test.js test/generate.test.js"
   },
+  "keywords": [
+    "transpiler",
+    "yaml",
+    "javascript",
+    "language",
+    "codegen",
+    "compiler",
+    "yspec"
+  ],
+  "author": "Xethryon",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/EstarinAzx/YSpec.git"
+  },
+  "homepage": "https://github.com/EstarinAzx/YSpec",
+  "engines": {
+    "node": ">=18"
+  },
+  "files": [
+    "bin/",
+    "src/",
+    "README.md"
+  ],
   "dependencies": {
     "js-yaml": "^4.1.0"
   }

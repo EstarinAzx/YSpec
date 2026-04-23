@@ -72,10 +72,30 @@ function generateModule(mod) {
 
   // Imports
   for (const imp of mod.imports) {
-    const symbols = imp.symbols.join(', ');
-    // Convert .yspec references to .js
-    const from = imp.from.replace(/\.yspec$/, '.js');
-    parts.push(`import { ${symbols} } from '${from}';`);
+    // Convert .yspec references to .js for local imports only
+    const from = imp.kind === 'local'
+      ? imp.from.replace(/\.yspec$/, '.js')
+      : imp.from;
+
+    if (imp.defaultAs) {
+      // Default import with alias: import express from 'express'
+      if (imp.symbols.length > 0) {
+        // Default + named: import express, { Router } from 'express'
+        parts.push(`import ${imp.defaultAs}, { ${imp.symbols.join(', ')} } from '${from}';`);
+      } else {
+        parts.push(`import ${imp.defaultAs} from '${from}';`);
+      }
+    } else if (imp.symbols.length === 0 && imp.kind === 'npm') {
+      // Bare npm import with no symbols — default import using package name
+      const defaultName = imp.from.replace(/[^a-zA-Z0-9]/g, '_').replace(/^_+|_+$/g, '');
+      parts.push(`import ${defaultName} from '${from}';`);
+    } else if (imp.symbols.length > 0) {
+      // Named imports: import { x, y } from 'z'
+      parts.push(`import { ${imp.symbols.join(', ')} } from '${from}';`);
+    } else {
+      // Side-effect import: import './setup.js'
+      parts.push(`import '${from}';`);
+    }
   }
 
   if (mod.imports.length > 0) {

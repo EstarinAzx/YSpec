@@ -258,12 +258,27 @@ function parseMacroDoc(raw) {
 
 /**
  * Parse an imports entry.
+ * Supports:
+ *   - { from: './utils.yspec', symbols: ['add', 'sub'] }  → named local import
+ *   - { from: 'express' }                                  → default npm import
+ *   - { from: 'express', as: 'app' }                       → aliased default npm import
+ *   - { from: 'express', symbols: ['Router'] }             → named npm import
+ *   - { from: 'node:fs', symbols: ['readFile'] }           → node builtin import
  */
 function parseImport(imp) {
-  return {
-    from: imp.from,
-    symbols: imp.symbols || []
-  };
+  const from = imp.from;
+  const symbols = imp.symbols || [];
+  const defaultAs = imp.as || null;
+
+  // Detect import kind
+  let kind = 'local';
+  if (from.startsWith('node:')) {
+    kind = 'builtin';
+  } else if (!from.startsWith('./') && !from.startsWith('../') && !from.endsWith('.yspec')) {
+    kind = 'npm';
+  }
+
+  return { from, symbols, kind, defaultAs };
 }
 
 /**
