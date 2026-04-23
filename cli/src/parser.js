@@ -59,8 +59,8 @@ export function parse(source, filename = '<input>') {
         imports: (raw.imports || []).map(parseImport),
         exports: [],
         variables: [],
-        functions: [],
-        classes: [],
+        functions: extractInlineFunctions(raw).map(fn => parseFunctionDoc(fn)),
+        classes: extractInlineClasses(raw).map(cls => parseClassDoc(cls)),
         macros: [],
         logic: parseLogicBlock(raw.logic || [])
       };
@@ -127,6 +127,39 @@ function parseFunctionDoc(raw) {
 }
 
 /**
+ * Extract inline `function <name>:` keys from a raw YAML object.
+ * Returns an array of function definition objects compatible with parseFunctionDoc.
+ */
+function extractInlineFunctions(raw) {
+  const fns = [];
+  for (const key of Object.keys(raw)) {
+    const match = key.match(/^function\s+(\w+)$/);
+    if (match) {
+      const def = raw[key] || {};
+      // Build a raw function object that parseFunctionDoc can handle
+      fns.push({ function: match[1], ...def });
+    }
+  }
+  return fns;
+}
+
+/**
+ * Extract inline `class <name>:` keys from a raw YAML object.
+ * Returns an array of class definition objects compatible with parseClassDoc.
+ */
+function extractInlineClasses(raw) {
+  const classes = [];
+  for (const key of Object.keys(raw)) {
+    const match = key.match(/^class\s+(\w+)$/);
+    if (match) {
+      const def = raw[key] || {};
+      classes.push({ class: match[1], ...def });
+    }
+  }
+  return classes;
+}
+
+/**
  * Parse a module document.
  */
 function parseModuleDoc(raw) {
@@ -149,14 +182,22 @@ function parseModuleDoc(raw) {
     }
   }
 
+  // Merge functions: list with inline `function <name>:` definitions
+  const listFunctions = (raw.functions || []).map(fn => parseFunctionDoc(fn));
+  const inlineFunctions = extractInlineFunctions(raw).map(fn => parseFunctionDoc(fn));
+
+  // Merge classes: list with inline `class <name>:` definitions
+  const listClasses = (raw.classes || []).map(cls => parseClassDoc(cls));
+  const inlineClasses = extractInlineClasses(raw).map(cls => parseClassDoc(cls));
+
   return {
     type: 'module',
     name: raw.module,
     imports: (raw.imports || []).map(parseImport),
     exports: raw.exports || [],
     variables,
-    functions: (raw.functions || []).map(fn => parseFunctionDoc(fn)),
-    classes: (raw.classes || []).map(cls => parseClassDoc(cls)),
+    functions: [...listFunctions, ...inlineFunctions],
+    classes: [...listClasses, ...inlineClasses],
     macros: (raw.macros || []).map(m => parseMacroDoc(m)),
     logic: parseLogicBlock(raw.logic || [])
   };
