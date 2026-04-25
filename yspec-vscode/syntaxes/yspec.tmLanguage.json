@@ -184,7 +184,7 @@
             "1": { "name": "keyword.control.loop.yspec" },
             "2": { "name": "variable.other.iterator.yspec" },
             "3": { "name": "keyword.operator.in.yspec" },
-            "4": { "patterns": [{ "include": "#expression-inner" }] },
+            "4": { "name": "variable.other.yspec" },
             "5": { "name": "punctuation.definition.block.yspec" }
           }
         },

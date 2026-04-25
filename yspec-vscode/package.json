@@ -94,6 +94,10 @@
           {
             "scope": "variable.other.declaration.yspec",
             "settings": { "foreground": "#9CDCFE" }
+          },
+          {
+            "scope": "variable.other.yspec",
+            "settings": { "foreground": "#9CDCFE" }
           }
         ]
       }
