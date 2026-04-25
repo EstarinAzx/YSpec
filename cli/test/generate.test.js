@@ -414,6 +414,20 @@ logic: |
     expectContains(output, 'const INLINE = 42;', 'inline const');
     expectContains(output, 'const BLOCK = 99;', 'block const');
   });
+
+  it('correctly quotes string literal values', () => {
+    const output = gen(`module: test
+const APP_NAME: "Demo"
+const VERSION: "1.0.0"
+const MAX: 3
+const FLAG: true
+logic: |
+  console.log(APP_NAME)`);
+    expectContains(output, "const APP_NAME = 'Demo';", 'string quoted');
+    expectContains(output, "const VERSION = '1.0.0';", 'version string quoted');
+    expectContains(output, 'const MAX = 3;', 'number unquoted');
+    expectContains(output, 'const FLAG = true;', 'boolean unquoted');
+  });
 });
 
 // ═══════════════════════════════════════════════════════════════════════════

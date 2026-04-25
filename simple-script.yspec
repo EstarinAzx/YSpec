@@ -1,0 +1,21 @@
+const APP_NAME: "Demo"
+
+function greet:
+  inputs:
+    - name: string
+  logic: |
+    console.log(`Welcome to ${APP_NAME}, ${name}`)
+
+function showScores:
+  inputs:
+    - scores: array
+  logic: |
+    for score in scores:
+      if score >= 50:
+        console.log(`Pass: ${score}`)
+      else:
+        console.log(`Fail: ${score}`)
+
+logic: |
+  greet("World")
+  showScores([72, 41, 99, 50])

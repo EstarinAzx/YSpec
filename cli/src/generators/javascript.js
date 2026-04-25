@@ -114,7 +114,7 @@ function generateModule(mod) {
       if (v.type) {
         parts.push(`/** @type {${v.type}} */`);
       }
-      parts.push(`${exportPrefix}${keyword} ${v.name} = ${resolveExpression(v.value, null)};`);
+      parts.push(`${exportPrefix}${keyword} ${v.name} = ${formatValue(v.value)};`);
     }
     parts.push('');
   }
@@ -166,10 +166,17 @@ function generateClass(cls, depth, exportPrefix = '') {
 
   // Auto-generate constructor from fields ONLY if no explicit constructor
   if (cls.fields.length > 0 && !hasExplicitConstructor) {
-    lines.push(`${ind}${INDENT}constructor() {`);
-    for (const field of cls.fields) {
-      const val = field.default !== undefined ? ` ${formatValue(field.default)}` : ' undefined';
-      lines.push(`${ind}${INDENT}${INDENT}this.${field.name} =${val};`);
+    // Fields without defaults become constructor params
+    const paramFields = cls.fields.filter(f => f.default === undefined);
+    const defaultFields = cls.fields.filter(f => f.default !== undefined);
+    const paramList = paramFields.map(f => f.name).join(', ');
+
+    lines.push(`${ind}${INDENT}constructor(${paramList}) {`);
+    for (const field of paramFields) {
+      lines.push(`${ind}${INDENT}${INDENT}this.${field.name} = ${field.name};`);
+    }
+    for (const field of defaultFields) {
+      lines.push(`${ind}${INDENT}${INDENT}this.${field.name} = ${formatValue(field.default)};`);
     }
     lines.push(`${ind}${INDENT}}`);
     lines.push('');
