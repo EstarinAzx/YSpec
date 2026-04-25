@@ -164,8 +164,8 @@ function parseBlock(lines, start, end, baseIndent) {
       continue;
     }
 
-    // ─── for item in collection ───
-    const forInMatch = content.match(/^for\s+(\w+)\s+in\s+(.+):$/);
+    // ─── for item in/of collection ───
+    const forInMatch = content.match(/^for\s+(\w+)\s+(?:in|of)\s+(.+):$/);
     if (forInMatch) {
       const body = collectBlock(lines, i + 1, end, token.indent);
       stmts.push({

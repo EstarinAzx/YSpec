@@ -555,3 +555,43 @@ logic run: |
     expectContains(output, 'console.log(msg);', 'script labeled run');
   });
 });
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Function shorthand and for-of
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('Function shorthand syntax', () => {
+
+  it('generates shorthand function with no inputs', () => {
+    const output = gen(`module: test
+function greet: |
+  console.log("hi")
+logic: |
+  greet()`);
+    expectContains(output, 'function greet()', 'shorthand function');
+    expectContains(output, 'console.log("hi");', 'shorthand body');
+  });
+});
+
+describe('for...of syntax alias', () => {
+
+  it('generates for...of from of keyword', () => {
+    const output = gen(`function: test
+inputs:
+  - items
+logic: |
+  for item of items:
+    console.log(item)`);
+    expectContains(output, 'for (const item of items)', 'for...of');
+  });
+
+  it('generates for...of from in keyword (still works)', () => {
+    const output = gen(`function: test
+inputs:
+  - items
+logic: |
+  for item in items:
+    console.log(item)`);
+    expectContains(output, 'for (const item of items)', 'for...in → for...of');
+  });
+});

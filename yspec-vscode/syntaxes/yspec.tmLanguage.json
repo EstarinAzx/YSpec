@@ -179,7 +179,7 @@
           }
         },
         {
-          "match": "\\b(for)\\s+(\\w+)\\s+(in)\\s+(.+?)(:)\\s*$",
+          "match": "\\b(for)\\s+(\\w+)\\s+(in|of)\\s+(.+?)(:)\\s*$",
           "captures": {
             "1": { "name": "keyword.control.loop.yspec" },
             "2": { "name": "variable.other.iterator.yspec" },

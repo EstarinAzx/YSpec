@@ -138,8 +138,13 @@ function extractInlineFunctions(raw) {
     const match = key.match(/^function\s+(\w+)$/);
     if (match) {
       const def = raw[key] || {};
-      // Build a raw function object that parseFunctionDoc can handle
-      fns.push({ function: match[1], ...def });
+      if (typeof def === 'string') {
+        // Shorthand: function greet: |
+        //   console.log("hi")
+        fns.push({ function: match[1], logic: def });
+      } else {
+        fns.push({ function: match[1], ...def });
+      }
     }
   }
   return fns;
