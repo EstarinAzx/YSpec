@@ -45,8 +45,9 @@ export function parse(source, filename = '<input>') {
   const kinds = TOP_LEVEL_KINDS.filter(k => k in raw);
 
   if (kinds.length === 0) {
-    // Script mode: bare logic: | with no document kind
-    if ('logic' in raw) {
+    // Script mode: bare logic: | or labeled logic blocks with no document kind
+    const hasLogic = 'logic' in raw || Object.keys(raw).some(k => /^logic\s+\w[\w-]*$/.test(k));
+    if (hasLogic) {
       const doc = {
         kind: 'module',
         name: filename.replace(/\.yspec$/, ''),
@@ -62,7 +63,7 @@ export function parse(source, filename = '<input>') {
         functions: extractInlineFunctions(raw).map(fn => parseFunctionDoc(fn)),
         classes: extractInlineClasses(raw).map(cls => parseClassDoc(cls)),
         macros: [],
-        logic: parseLogicBlock(raw.logic || [])
+        logic: [...parseLogicBlock(raw.logic || []), ...extractLabeledLogicBlocks(raw)]
       };
       // Parse const:/let: block and inline const <name>:/let <name>: declarations
       if (raw.const && typeof raw.const === 'object') {
@@ -181,6 +182,21 @@ function extractInlineVariables(raw) {
 }
 
 /**
+ * Extract labeled logic blocks: `logic <name>: |` keys from a raw YAML object.
+ * Returns parsed logic statements in document order, merged with the primary `logic:` block.
+ */
+function extractLabeledLogicBlocks(raw) {
+  const blocks = [];
+  for (const key of Object.keys(raw)) {
+    const match = key.match(/^logic\s+(\w[\w-]*)$/);
+    if (match) {
+      blocks.push(...parseLogicBlock(raw[key] || []));
+    }
+  }
+  return blocks;
+}
+
+/**
  * Parse a module document.
  */
 function parseModuleDoc(raw) {
@@ -222,7 +238,7 @@ function parseModuleDoc(raw) {
     functions: [...listFunctions, ...inlineFunctions],
     classes: [...listClasses, ...inlineClasses],
     macros: (raw.macros || []).map(m => parseMacroDoc(m)),
-    logic: parseLogicBlock(raw.logic || [])
+    logic: [...parseLogicBlock(raw.logic || []), ...extractLabeledLogicBlocks(raw)]
   };
 }
 

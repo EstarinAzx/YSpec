@@ -510,3 +510,48 @@ logic: |
     expectContains(output, 'greet("World");', 'script call');
   });
 });
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Labeled logic blocks
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('Labeled logic blocks', () => {
+
+  it('generates multiple labeled blocks in order', () => {
+    const output = gen(`module: test
+logic setup: |
+  const x = 1
+logic main: |
+  console.log(x)
+logic cleanup: |
+  console.log("done")`);
+    expectContains(output, 'const x = 1;', 'setup block');
+    expectContains(output, 'console.log(x);', 'main block');
+    expectContains(output, 'console.log("done");', 'cleanup block');
+    // Verify order: setup before main before cleanup
+    const setupIdx = output.indexOf('const x = 1;');
+    const mainIdx = output.indexOf('console.log(x);');
+    const cleanIdx = output.indexOf('console.log("done");');
+    assert.ok(setupIdx < mainIdx, 'setup before main');
+    assert.ok(mainIdx < cleanIdx, 'main before cleanup');
+  });
+
+  it('merges labeled blocks with primary logic block', () => {
+    const output = gen(`module: test
+logic: |
+  console.log("primary")
+logic extra: |
+  console.log("extra")`);
+    expectContains(output, 'console.log("primary");', 'primary logic');
+    expectContains(output, 'console.log("extra");', 'extra logic');
+  });
+
+  it('works in script mode with only labeled blocks', () => {
+    const output = gen(`logic init: |
+  const msg = "hello"
+logic run: |
+  console.log(msg)`);
+    expectContains(output, 'const msg = "hello";', 'script labeled init');
+    expectContains(output, 'console.log(msg);', 'script labeled run');
+  });
+});

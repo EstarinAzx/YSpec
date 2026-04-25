@@ -125,6 +125,16 @@
     "logic-block-start": {
       "patterns": [
         {
+          "comment": "Labeled logic block: logic <name>: |",
+          "match": "(logic)\\s+(\\w[\\w-]*)(:)\\s*(\\|)\\s*$",
+          "captures": {
+            "1": { "name": "keyword.other.section.yspec" },
+            "2": { "name": "entity.name.tag.yspec" },
+            "3": { "name": "punctuation.separator.key-value.yspec" },
+            "4": { "name": "punctuation.definition.block.pipe.yspec" }
+          }
+        },
+        {
           "match": "(logic)(:)\\s*(\\|)\\s*$",
           "captures": {
             "1": { "name": "keyword.other.section.yspec" },
