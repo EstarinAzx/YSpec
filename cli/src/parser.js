@@ -157,10 +157,12 @@ function extractInlineFunctions(raw) {
 function extractInlineClasses(raw) {
   const classes = [];
   for (const key of Object.keys(raw)) {
-    const match = key.match(/^class\s+(\w+)$/);
+    const match = key.match(/^class\s+(\w+)(?:\s+extends\s+(\w+))?$/);
     if (match) {
       const def = raw[key] || {};
-      classes.push({ class: match[1], ...def });
+      const cls = { class: match[1], ...def };
+      if (match[2]) cls.extends = match[2];
+      classes.push(cls);
     }
   }
   return classes;
@@ -258,7 +260,25 @@ function parseClassDoc(raw) {
     extends: raw.extends || null,
     implements: raw.implements || [],
     fields: (raw.fields || []).map(parseField),
-    methods: (raw.methods || []).map(fn => parseFunctionDoc(fn))
+    methods: (raw.methods || []).map(m => {
+      // Already has function: key (v1 full form)
+      if (m.function) return parseFunctionDoc(m);
+
+      // Shorthand: { describe: | ... } or { describe: { inputs: ..., logic: ... } }
+      const keys = Object.keys(m);
+      if (keys.length >= 1) {
+        const name = keys[0];
+        const def = m[name];
+        if (typeof def === 'string') {
+          // Shorthand: describe: |
+          return parseFunctionDoc({ function: name, logic: def });
+        } else if (typeof def === 'object' && def !== null) {
+          // Expanded: describe: { inputs: [...], logic: | }
+          return parseFunctionDoc({ function: name, ...def });
+        }
+      }
+      return parseFunctionDoc(m);
+    })
   };
 }
 
@@ -341,7 +361,8 @@ function parseField(field) {
   }
 
   // v1 full form: { name: 'status', type: 'string', default: 'idle' }
-  if (field.name) {
+  // Must have both name AND type to distinguish from v2 shorthand { name: 'string' }
+  if (field.name && field.type) {
     return {
       name: field.name,
       type: field.type || null,

@@ -116,10 +116,40 @@ export function resolveExpression(value, scope) {
         'length', 'floor', 'random', 'log', 'now', 'from',
       ]);
 
+      // Build a set of character ranges that are inside template literal text
+      // (between backticks, but outside ${} interpolations)
+      const inTemplateLiteral = new Set();
+      let inBacktick = false;
+      let braceDepth = 0;
+      for (let j = 0; j < trimmed.length; j++) {
+        const ch = trimmed[j];
+        if (ch === '`' && (j === 0 || trimmed[j - 1] !== '\\')) {
+          inBacktick = !inBacktick;
+          inTemplateLiteral.add(j);
+          continue;
+        }
+        if (inBacktick) {
+          if (ch === '$' && trimmed[j + 1] === '{') {
+            braceDepth++;
+            j++; // skip the {
+            continue;
+          }
+          if (ch === '}' && braceDepth > 0) {
+            braceDepth--;
+            continue;
+          }
+          if (braceDepth === 0) {
+            inTemplateLiteral.add(j);
+          }
+        }
+      }
+
       return trimmed.replace(/(?<![.])\b([a-zA-Z_$][a-zA-Z0-9_$]*)\b/g, (match, name, offset) => {
         if (JS_SKIP.has(match)) return match;
         // Don't resolve if preceded by a dot (property access like obj.field)
         if (offset > 0 && trimmed[offset - 1] === '.') return match;
+        // Don't resolve identifiers that are plain text inside template literals
+        if (inTemplateLiteral.has(offset)) return match;
         return scope.resolve(match);
       });
     }

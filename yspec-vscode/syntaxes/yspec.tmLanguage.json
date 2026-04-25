@@ -48,11 +48,13 @@
       }
     },
     "inline-class-def": {
-      "match": "^(class)\\s+(\\w+)\\s*(:)",
+      "match": "^(class)\\s+(\\w+)(?:\\s+(extends)\\s+(\\w+))?\\s*(:)",
       "captures": {
         "1": { "name": "keyword.control.yspec" },
         "2": { "name": "entity.name.class.yspec" },
-        "3": { "name": "punctuation.separator.key-value.yspec" }
+        "3": { "name": "keyword.other.modifier.yspec" },
+        "4": { "name": "entity.name.class.yspec" },
+        "5": { "name": "punctuation.separator.key-value.yspec" }
       }
     },
     "comment": {

@@ -172,6 +172,10 @@ function generateClass(cls, depth, exportPrefix = '') {
     const paramList = paramFields.map(f => f.name).join(', ');
 
     lines.push(`${ind}${INDENT}constructor(${paramList}) {`);
+    // Call super() when extending a parent class
+    if (cls.extends) {
+      lines.push(`${ind}${INDENT}${INDENT}super(${paramList});`);
+    }
     for (const field of paramFields) {
       lines.push(`${ind}${INDENT}${INDENT}this.${field.name} = ${field.name};`);
     }
@@ -381,22 +385,24 @@ function generateTry(stmt, depth, scope) {
   code += `${ind}}`;
 
   if (stmt.except.length > 0) {
-    code += ` catch (error) {\n`;
+    // Use the binding name from the first catch handler (catch Error as err → err)
+    const catchVar = stmt.except[0].bindTo || 'error';
+    code += ` catch (${catchVar}) {\n`;
 
     if (stmt.except.length === 1) {
       // Single handler — check type
       const handler = stmt.except[0];
-      code += `${ind}${INDENT}if (error instanceof ${handler.errorType}) {\n`;
+      code += `${ind}${INDENT}if (${catchVar} instanceof ${handler.errorType}) {\n`;
       code += generateLogicBlock(handler.then, depth + 2, scope);
       code += `${ind}${INDENT}} else {\n`;
-      code += `${ind}${INDENT}${INDENT}throw error;\n`;
+      code += `${ind}${INDENT}${INDENT}throw ${catchVar};\n`;
       code += `${ind}${INDENT}}\n`;
     } else {
       // Multiple handlers — chained if/else if
       for (let i = 0; i < stmt.except.length; i++) {
         const handler = stmt.except[i];
         const keyword = i === 0 ? 'if' : 'else if';
-        code += `${ind}${INDENT}${keyword} (error instanceof ${handler.errorType}) {\n`;
+        code += `${ind}${INDENT}${keyword} (${catchVar} instanceof ${handler.errorType}) {\n`;
         code += generateLogicBlock(handler.then, depth + 2, scope);
         code += `${ind}${INDENT}}`;
         if (i < stmt.except.length - 1) {
@@ -404,7 +410,7 @@ function generateTry(stmt, depth, scope) {
         }
       }
       code += ` else {\n`;
-      code += `${ind}${INDENT}${INDENT}throw error;\n`;
+      code += `${ind}${INDENT}${INDENT}throw ${catchVar};\n`;
       code += `${ind}${INDENT}}\n`;
     }
 
