@@ -31,8 +31,8 @@
     }
   },
   "indentationRules": {
-    "increaseIndentPattern": "^\\s*(if|elseif|else|while|for|try|catch|finally|logic|methods|fields|classes|functions|inputs|function\\s+\\w+|class\\s+\\w+).*:\\s*(\\|)?\\s*$",
-    "decreaseIndentPattern": "^\\s*(elseif|else|catch|finally)\\b"
+    "increaseIndentPattern": "^\\s*(if|elseif|elif|else|while|for|try|catch|finally|logic|methods|fields|classes|functions|inputs|function\\s+\\w+|class\\s+\\w+).*:\\s*(\\|)?\\s*$",
+    "decreaseIndentPattern": "^\\s*(elseif|elif|else|catch|finally)\\b"
   },
   "onEnterRules": [
     {

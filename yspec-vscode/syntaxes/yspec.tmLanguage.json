@@ -146,7 +146,7 @@
           }
         },
         {
-          "match": "\\b(elseif)\\s+(.+?)(:)\\s*$",
+          "match": "\\b(elseif|elif)\\s+(.+?)(:)\\s*$",
           "captures": {
             "1": { "name": "keyword.control.conditional.yspec" },
             "2": { "patterns": [{ "include": "#expression-inner" }] },

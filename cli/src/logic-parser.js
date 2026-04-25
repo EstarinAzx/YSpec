@@ -332,7 +332,7 @@ function parseIfChain(lines, start, end, baseIndent) {
     const token = lines[i];
     if (token.indent !== baseIndent) break;
 
-    const elseifMatch = token.content.match(/^elseif\s+(.+):$/);
+    const elseifMatch = token.content.match(/^(?:elseif|elif)\s+(.+):$/);
     if (elseifMatch) {
       const branchBody = collectBlock(lines, i + 1, end, baseIndent);
       elseifBranches.push({
