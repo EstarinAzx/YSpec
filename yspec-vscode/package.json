@@ -62,6 +62,38 @@
           {
             "scope": "support.type.yspec",
             "settings": { "foreground": "#4EC9B0" }
+          },
+          {
+            "scope": "keyword.control.conditional.yspec",
+            "settings": { "foreground": "#C586C0" }
+          },
+          {
+            "scope": "keyword.control.loop.yspec",
+            "settings": { "foreground": "#C586C0" }
+          },
+          {
+            "scope": "keyword.control.yspec",
+            "settings": { "foreground": "#C586C0" }
+          },
+          {
+            "scope": "keyword.operator.in.yspec",
+            "settings": { "foreground": "#C586C0" }
+          },
+          {
+            "scope": "variable.other.iterator.yspec",
+            "settings": { "foreground": "#9CDCFE" }
+          },
+          {
+            "scope": "entity.name.tag.yspec",
+            "settings": { "foreground": "#4EC9B0", "fontStyle": "italic" }
+          },
+          {
+            "scope": "keyword.control.exception.yspec",
+            "settings": { "foreground": "#C586C0" }
+          },
+          {
+            "scope": "variable.other.declaration.yspec",
+            "settings": { "foreground": "#9CDCFE" }
           }
         ]
       }
